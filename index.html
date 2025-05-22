@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link href="assets/images/rocket.ico" rel="icon" type="image/x-icon" />
+
+        <title>Asteroid Defense Game</title>
+        <link
+            href="https://fonts.cdnfonts.com/css/nasalization-2"
+            rel="stylesheet"
+        />
+
+        <link rel="stylesheet" href="styles/game.css" />
+    </head>
+    <body>
+        <div id="canvas-container">
+            <!-- With tabindex="0", the canvas can gain focus and accept keyboard events without users having to perform an explicit action, like clicking on the canvas first. -->
+            <canvas id="gameCanvas" tabindex="0"></canvas>
+        </div>
+        <script type="module" src="scripts/game_logic.js" defer></script>
+
+    </body>
+</html>
