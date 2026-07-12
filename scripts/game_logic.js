@@ -1,5 +1,5 @@
 // game_logic.js
-import { fetchNasaKey } from '../../nasa_apod/scripts/api.js';
+
 // Protective onload.
 window.addEventListener('load', function() {
     const canvas = document.getElementById('gameCanvas');
@@ -171,7 +171,7 @@ window.addEventListener('load', function() {
       const dateParam = dateObj.toISOString().split('T')[0];
 
       // 3) Grab your secret key at runtime
-      const key = await fetchNasaKey();
+      const key = 'DEMO_KEY';
 
       // 4) Now build the URL with dateParam defined
       const APOD_URL = `https://api.nasa.gov/planetary/apod?api_key=${key}&date=${dateParam}`;
