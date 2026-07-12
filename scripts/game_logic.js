@@ -171,7 +171,7 @@ window.addEventListener('load', function() {
       const dateParam = dateObj.toISOString().split('T')[0];
 
       // 3) Grab your secret key at runtime
-      const key = 'DEMO_KEY';
+      const key = 'YqggPbVWuluTgrNrJdcuO7bqsTJCNAZfPk2AHbgL';
 
       // 4) Now build the URL with dateParam defined
       const APOD_URL = `https://api.nasa.gov/planetary/apod?api_key=${key}&date=${dateParam}`;
