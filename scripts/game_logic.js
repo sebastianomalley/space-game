@@ -161,72 +161,86 @@ window.addEventListener('load', function() {
     // ===========================
 
     // Fetch image from NASA's APOD API for a specific date.
-    async function fetchImage(dateInput, imgElement, imgKey) {
-      // 1) Make sure we have a real Date object
-      const dateObj = dateInput instanceof Date
-        ? dateInput
-        : new Date(dateInput);
+    // ---------------------------------------------------------------------------
+    // Backgrounds
+    // NASA's API stopped returning each day's image in 2026, so dates are looked up
+    // in the gallery's archive (same site). Each image is requested from an image
+    // proxy, the Internet Archive and NASA at once, and the first copy to arrive
+    // wins. Results are cached, and every level's background is fetched while the
+    // title screen is up, so levels never start on a blank sky.
+    // ---------------------------------------------------------------------------
+    const APOD_KEY = 'YqggPbVWuluTgrNrJdcuO7bqsTJCNAZfPk2AHbgL';
+    const archiveYears = {};
+    const resolved = {};
 
-      // 2) Turn it into YYYY-MM-DD
-      const dateParam = dateObj.toISOString().split('T')[0];
-
-      // 3) Grab your secret key at runtime
-      const key = 'YqggPbVWuluTgrNrJdcuO7bqsTJCNAZfPk2AHbgL';
-
-      // 4) Now build the URL with dateParam defined
-      const APOD_URL = `https://api.nasa.gov/planetary/apod?api_key=${key}&date=${dateParam}`;
-
-      try {
-        // NASA's API stopped returning the day's image in 2026, so look the date up
-        // in the gallery's archive first (same site), then fall back to the API.
-        let data = null;
-        try {
-          const year = dateParam.slice(0, 4);
-          const r = await fetch(`https://sebastianomalley.github.io/apod-viewer/data/apod-${year}.json`);
-          if (r.ok) {
-            const e = (await r.json())[dateParam];
-            if (e && e.m === 'image') data = { url: e.u };
-          }
-        } catch (e) { /* fall through to the API */ }
-        if (!data) {
-          const response = await fetch(APOD_URL);
-          if (!response.ok) throw new Error("Failed to fetch image");
-          data = await response.json();
-        }
-        if (!data.url) throw new Error("Image URL not found in response");
-
-        // 5) Load it, with backups. In 2026 NASA moved APOD to science.nasa.gov and the
-        //    old apod.nasa.gov image server stopped answering reliably, so if the direct
-        //    link fails, try the Internet Archive's copy, then an image proxy.
-        // NASA's old image server is slow or unreachable since its 2026 move, so ask
-        // every copy at once (image proxy, Internet Archive, NASA) and use the first.
-        const bare = data.url.replace(/^https?:\/\//, '');
-        const sources = [
-          'https://images.weserv.nl/?w=2400&we&url=' + encodeURIComponent('ssl:' + bare),
-          'https://images.weserv.nl/?w=2400&we&url=' + encodeURIComponent(bare),
-          'https://web.archive.org/web/2025id_/https://' + bare,
-          data.url,
-        ];
-        let settled = false, failed = 0;
-        const finish = () => { imagesLoaded[imgKey] = true; checkAllImagesLoaded(); };
-        imgElement.onload = finish;
-        sources.forEach(src => {
-          const probe = new Image();
-          probe.onload = () => { if (!settled) { settled = true; imgElement.src = src; } };
-          probe.onerror = () => {
-            if (++failed === sources.length && !settled) {
-              console.error(`No working copy of the image for ${dateParam}`);
-              finish();   // don't hang the game on a missing image
-            }
-          };
-          probe.src = src;
-        });
-      } catch (error) {
-        console.error(`Error fetching image for ${dateParam}:`, error);
-        imagesLoaded[imgKey] = true;
-        checkAllImagesLoaded();
-      }
+    function toDateParam(dateInput) {
+      const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+      return d.toISOString().split('T')[0];
     }
+
+    async function apodImageUrl(dateParam) {
+      const year = dateParam.slice(0, 4);
+      if (!(year in archiveYears)) {
+        archiveYears[year] = fetch(`https://sebastianomalley.github.io/apod-viewer/data/apod-${year}.json`)
+          .then(r => (r.ok ? r.json() : {})).catch(() => ({}));
+      }
+      const e = (await archiveYears[year])[dateParam];
+      if (e && e.m === 'image') return e.u;
+      try {
+        const r = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${APOD_KEY}&date=${dateParam}`);
+        const data = r.ok ? await r.json() : null;
+        return data && data.media_type === 'image' && !/nasa-logo/i.test(data.url || '') ? data.url : null;
+      } catch (err) { return null; }
+    }
+
+    // Resolves to a loaded, ready-to-draw image URL for the date (or null).
+    function resolveBackground(dateInput) {
+      const dateParam = toDateParam(dateInput);
+      if (!resolved[dateParam]) {
+        resolved[dateParam] = apodImageUrl(dateParam).then(url => {
+          if (!url) return null;
+          const bare = url.replace(/^https?:\/\//, '');
+          const sources = [
+            'https://images.weserv.nl/?w=2400&we&url=' + encodeURIComponent('ssl:' + bare),
+            'https://images.weserv.nl/?w=2400&we&url=' + encodeURIComponent(bare),
+            'https://web.archive.org/web/2025id_/https://' + bare,
+            url,
+          ];
+          return new Promise(resolve => {
+            let settled = false, failed = 0;
+            sources.forEach(src => {
+              const probe = new Image();
+              probe.onload = () => { if (!settled) { settled = true; resolve(src); } };
+              probe.onerror = () => { if (++failed === sources.length && !settled) resolve(null); };
+              probe.src = src;
+            });
+          });
+        });
+      }
+      return resolved[dateParam];
+    }
+
+    // The background date for a level: the player's pick if it's in the archive,
+    // otherwise the level's default.
+    function levelBackgroundDate(levelIndex) {
+      const saved = JSON.parse(localStorage.getItem('backgrounds') || '{}');
+      const pick = saved[`level${levelIndex + 1}`];
+      if (pick && pick >= '2007-01-01' && pick <= '2025-12-23') return pick;
+      return levels[levelIndex].backgroundAPI.date;
+    }
+
+    async function fetchImage(dateInput, imgElement, imgKey) {
+      const finish = () => { imagesLoaded[imgKey] = true; checkAllImagesLoaded(); };
+      const src = await resolveBackground(dateInput);
+      if (!src) { console.error(`No background image for ${toDateParam(dateInput)}`); finish(); return; }
+      if (imgElement.src === src && imgElement.complete && imgElement.naturalWidth) { finish(); return; }
+      imgElement.onload = finish;
+      imgElement.onerror = finish;
+      imgElement.src = src;   // already downloaded by resolveBackground, so this is instant
+    }
+
+    // Start downloading every level's background right away.
+    levels.forEach((_, i) => resolveBackground(levelBackgroundDate(i)));
 
 
     // ===========================
@@ -290,15 +304,8 @@ window.addEventListener('load', function() {
       const levelSettings = levels[level - 1];
       if (levelSettings.backgroundAPI) {
         // Ensure the latest background is applied.
-        const savedBackgrounds = JSON.parse(localStorage.getItem('backgrounds')) || {};
-        const levelKey = `level${level}`;
-        // Only use a saved pick if it's inside the gallery's archive (2007 to 2025-12-23);
-        // anything else falls back to this level's default image.
-        const pick = savedBackgrounds[levelKey];
-        if (pick && pick >= '2007-01-01' && pick <= '2025-12-23') {
-          levelSettings.backgroundAPI.date = pick;
-        }
-        await fetchImage(levelSettings.backgroundAPI.date, backgroundImage, 'background');
+        // Usually already downloaded during the title screen, so this is instant.
+        await fetchImage(levelBackgroundDate(level - 1), backgroundImage, 'background');
       }
 
       // Boss level logic.
