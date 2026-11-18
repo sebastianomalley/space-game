@@ -125,7 +125,7 @@ window.addEventListener('load', function() {
     const flashSound = new Audio('assets/sound_fx/one_up.wav');
     flashSound.volume = 1.0; // Set to max volume.
 
-    const titleMusic = new Audio('assets/sound_fx/MEGA.mp3'); // Path to sound file.
+    const titleMusic = new Audio('assets/sound_fx/title_music.mp3'); // Path to sound file.
     titleMusic.loop = true; // Make it loop during the title screen.
     titleMusic.volume = 0.4; // Set the volume level.
 
@@ -135,7 +135,8 @@ window.addEventListener('load', function() {
     gameOverSound.volume = 0.4; // Set the volume level.
 
     const victoryMusic = new Audio('assets/sound_fx/victory_music.mp3'); // Path to sound file.
-    victoryMusic.volume = 0.5;  // Set the volume level.
+    victoryMusic.volume = 0.5;
+    victoryMusic.loop = true; // Keeps playing until the credits fade out.  // Set the volume level.
     let targetVisible = true; // Track if target is visible.
     let asteroidsDestroyed = 0; // Counter for destroyed asteroids.
     let bossAsteroid = null; // Define boss asteroid.
