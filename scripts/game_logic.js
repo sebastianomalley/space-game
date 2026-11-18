@@ -19,17 +19,17 @@ window.addEventListener('load', function() {
       { 
         asteroidsToDestroy: 3, 
         backgroundAPI: { date: '2024-11-21' }, // NASA API image for this date.  Default.
-        music: new Audio('assets/sound_fx/level1_music.mp3') 
+        music: new Audio('assets/sound_fx/level1_music.mp3?v=2') 
       },
       { 
         asteroidsToDestroy: 5, 
         backgroundAPI: { date: '2024-12-09' }, // NASA API image for this date.  Default.
-        music: new Audio('assets/sound_fx/level2_music.mp3') 
+        music: new Audio('assets/sound_fx/level2_music.mp3?v=2') 
       },
       {
         asteroidsToDestroy: 1, // Represents the boss.
         backgroundAPI: { date: '2024-11-28' },  // NASA API image for this date.  Default.
-        music: new Audio('assets/sound_fx/level3_music.mp3'),
+        music: new Audio('assets/sound_fx/level3_music.mp3?v=2'),
       }   
     ];
 
@@ -134,7 +134,7 @@ window.addEventListener('load', function() {
     const gameOverSound = new Audio('assets/sound_fx/theme3.wav'); // Path to sound file.
     gameOverSound.volume = 0.4; // Set the volume level.
 
-    const victoryMusic = new Audio('assets/sound_fx/oneLast.mp3'); // Path to sound file.
+    const victoryMusic = new Audio('assets/sound_fx/victory_music.mp3'); // Path to sound file.
     victoryMusic.volume = 0.5;  // Set the volume level.
     let targetVisible = true; // Track if target is visible.
     let asteroidsDestroyed = 0; // Counter for destroyed asteroids.
