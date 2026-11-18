@@ -198,29 +198,29 @@ window.addEventListener('load', function() {
         // 5) Load it, with backups. In 2026 NASA moved APOD to science.nasa.gov and the
         //    old apod.nasa.gov image server stopped answering reliably, so if the direct
         //    link fails, try the Internet Archive's copy, then an image proxy.
+        // NASA's old image server is slow or unreachable since its 2026 move, so ask
+        // every copy at once (image proxy, Internet Archive, NASA) and use the first.
         const bare = data.url.replace(/^https?:\/\//, '');
         const sources = [
-          data.url,
+          'https://images.weserv.nl/?w=2400&we&url=' + encodeURIComponent('ssl:' + bare),
+          'https://images.weserv.nl/?w=2400&we&url=' + encodeURIComponent(bare),
           'https://web.archive.org/web/2025id_/https://' + bare,
-          'https://images.weserv.nl/?w=2400&url=' + encodeURIComponent('ssl:' + bare),
+          data.url,
         ];
-        let attempt = 0;
-        imgElement.crossOrigin = null;
-        imgElement.onload = () => {
-          imagesLoaded[imgKey] = true;
-          checkAllImagesLoaded();
-        };
-        imgElement.onerror = () => {
-          attempt++;
-          if (attempt < sources.length) {
-            imgElement.src = sources[attempt];
-          } else {
-            console.error(`No working copy of the image for ${dateParam}`);
-            imagesLoaded[imgKey] = true;   // don't hang the game on a missing image
-            checkAllImagesLoaded();
-          }
-        };
-        imgElement.src = sources[0];
+        let settled = false, failed = 0;
+        const finish = () => { imagesLoaded[imgKey] = true; checkAllImagesLoaded(); };
+        imgElement.onload = finish;
+        sources.forEach(src => {
+          const probe = new Image();
+          probe.onload = () => { if (!settled) { settled = true; imgElement.src = src; } };
+          probe.onerror = () => {
+            if (++failed === sources.length && !settled) {
+              console.error(`No working copy of the image for ${dateParam}`);
+              finish();   // don't hang the game on a missing image
+            }
+          };
+          probe.src = src;
+        });
       } catch (error) {
         console.error(`Error fetching image for ${dateParam}:`, error);
         imagesLoaded[imgKey] = true;
