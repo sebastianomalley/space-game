@@ -135,8 +135,8 @@ window.addEventListener('load', function() {
     gameOverSound.volume = 0.4; // Set the volume level.
 
     const victoryMusic = new Audio('assets/sound_fx/victory_music.mp3'); // Path to sound file.
-    victoryMusic.volume = 0.5;
-    victoryMusic.loop = true; // Keeps playing until the credits fade out.  // Set the volume level.
+    victoryMusic.volume = 0.5;  // Set the volume level.
+    victoryMusic.loop = true; // Keeps playing until the credits fade out.
     let targetVisible = true; // Track if target is visible.
     let asteroidsDestroyed = 0; // Counter for destroyed asteroids.
     let bossAsteroid = null; // Define boss asteroid.
