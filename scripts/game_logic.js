@@ -177,10 +177,22 @@ window.addEventListener('load', function() {
       const APOD_URL = `https://api.nasa.gov/planetary/apod?api_key=${key}&date=${dateParam}`;
 
       try {
-        const response = await fetch(APOD_URL);
-        if (!response.ok) throw new Error("Failed to fetch image");
-
-        const data = await response.json();
+        // NASA's API stopped returning the day's image in 2026, so look the date up
+        // in the gallery's archive first (same site), then fall back to the API.
+        let data = null;
+        try {
+          const year = dateParam.slice(0, 4);
+          const r = await fetch(`https://sebastianomalley.github.io/apod-viewer/data/apod-${year}.json`);
+          if (r.ok) {
+            const e = (await r.json())[dateParam];
+            if (e && e.m === 'image') data = { url: e.u };
+          }
+        } catch (e) { /* fall through to the API */ }
+        if (!data) {
+          const response = await fetch(APOD_URL);
+          if (!response.ok) throw new Error("Failed to fetch image");
+          data = await response.json();
+        }
         if (!data.url) throw new Error("Image URL not found in response");
 
         // 5) Load it, with backups. In 2026 NASA moved APOD to science.nasa.gov and the
@@ -189,8 +201,8 @@ window.addEventListener('load', function() {
         const bare = data.url.replace(/^https?:\/\//, '');
         const sources = [
           data.url,
-          'https://web.archive.org/web/2026id_/https://' + bare,
-          'https://images.weserv.nl/?w=2400&url=' + encodeURIComponent(bare),
+          'https://web.archive.org/web/2025id_/https://' + bare,
+          'https://images.weserv.nl/?w=2400&url=' + encodeURIComponent('ssl:' + bare),
         ];
         let attempt = 0;
         imgElement.crossOrigin = null;
