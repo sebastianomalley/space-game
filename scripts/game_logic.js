@@ -183,17 +183,32 @@ window.addEventListener('load', function() {
         const data = await response.json();
         if (!data.url) throw new Error("Image URL not found in response");
 
-        imgElement.src = data.url;
-
-        // 5) Mark this specific image as loaded
+        // 5) Load it, with backups. In 2026 NASA moved APOD to science.nasa.gov and the
+        //    old apod.nasa.gov image server stopped answering reliably, so if the direct
+        //    link fails, try the Internet Archive's copy, then an image proxy.
+        const bare = data.url.replace(/^https?:\/\//, '');
+        const sources = [
+          data.url,
+          'https://web.archive.org/web/2026id_/https://' + bare,
+          'https://images.weserv.nl/?w=2400&url=' + encodeURIComponent(bare),
+        ];
+        let attempt = 0;
+        imgElement.crossOrigin = null;
         imgElement.onload = () => {
           imagesLoaded[imgKey] = true;
           checkAllImagesLoaded();
         };
-        if (imgElement.complete) {
-          imagesLoaded[imgKey] = true;
-          checkAllImagesLoaded();
-        }
+        imgElement.onerror = () => {
+          attempt++;
+          if (attempt < sources.length) {
+            imgElement.src = sources[attempt];
+          } else {
+            console.error(`No working copy of the image for ${dateParam}`);
+            imagesLoaded[imgKey] = true;   // don't hang the game on a missing image
+            checkAllImagesLoaded();
+          }
+        };
+        imgElement.src = sources[0];
       } catch (error) {
         console.error(`Error fetching image for ${dateParam}:`, error);
         imagesLoaded[imgKey] = true;
