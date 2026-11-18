@@ -292,8 +292,11 @@ window.addEventListener('load', function() {
         // Ensure the latest background is applied.
         const savedBackgrounds = JSON.parse(localStorage.getItem('backgrounds')) || {};
         const levelKey = `level${level}`;
-        if (savedBackgrounds[levelKey]) {
-          levelSettings.backgroundAPI.date = savedBackgrounds[levelKey];
+        // Only use a saved pick if it's inside the gallery's archive (2007 to 2025-12-23);
+        // anything else falls back to this level's default image.
+        const pick = savedBackgrounds[levelKey];
+        if (pick && pick >= '2007-01-01' && pick <= '2025-12-23') {
+          levelSettings.backgroundAPI.date = pick;
         }
         await fetchImage(levelSettings.backgroundAPI.date, backgroundImage, 'background');
       }
